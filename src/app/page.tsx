@@ -1,3 +1,4 @@
+"use client";
 import Link from 'next/link';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -25,15 +26,15 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
               AI-Powered Resume ↔ Job Description Match Analyzer
             </div>
-            
+
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-text-primary">
               Analyze Your Resume Against Real Job Descriptions
             </h1>
-            
+
             <p className="text-lg text-text-secondary leading-relaxed">
               Upload your resume, add a job description, and receive ATS scores, match scores, skill-gap analysis, and personalized recommendations powered by Gemini 2.5 Flash.
             </p>
-            
+
             <div className="flex items-center gap-4 pt-4">
               <Link href="#cta" className="bg-text-primary text-background hover:bg-white/90 px-6 py-3 rounded-lg font-medium transition-colors">
                 Get Started
@@ -56,7 +57,7 @@ export default function Home() {
                 <div className="w-2.5 h-2.5 rounded-full bg-border" />
                 <div className="w-2.5 h-2.5 rounded-full bg-border" />
               </div>
-              
+
               {/* Content */}
               <div className="p-8 flex flex-col gap-6 flex-1">
                 <div className="grid grid-cols-2 gap-4">
@@ -81,7 +82,7 @@ export default function Home() {
                       ))}
                     </ul>
                   </div>
-                  
+
                   <div className="rounded-lg bg-background border border-border p-5">
                     <div className="text-sm font-medium mb-3 text-text-primary">Missing Skills</div>
                     <ul className="space-y-2">
@@ -97,7 +98,7 @@ export default function Home() {
                 <div className="flex-1 rounded-lg bg-background border border-border p-5 mt-2">
                   <div className="flex items-center gap-2 text-sm font-medium mb-2 text-accent">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                     </svg>
                     Recommendation
                   </div>
@@ -130,12 +131,12 @@ export default function Home() {
                       <h3 className="text-lg font-medium text-text-primary">{step}</h3>
                     </div>
                   </div>
-                  
+
                   {/* Center Node */}
                   <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center w-6 h-6 rounded-full bg-background border-2 border-border z-10">
                     <div className="w-2 h-2 rounded-full bg-accent" />
                   </div>
-                  
+
                   <div className="w-1/2" />
                 </div>
               ))}
@@ -145,13 +146,23 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section id="cta" className="py-32 px-6 relative border-t border-border/50">
+      <section
+        id="cta"
+        className="py-32 px-6 relative border-t border-border/50"
+      >
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-4xl font-bold mb-10 tracking-tight">
+          <h2 className="text-4xl font-bold mb-6 tracking-tight">
             Ready to improve your chances of getting shortlisted?
           </h2>
-          
-          <button className="bg-text-primary text-background hover:bg-white/90 px-8 py-4 rounded-lg font-medium text-lg transition-colors inline-flex items-center gap-3">
+
+          <p className="text-text-secondary mb-10 max-w-2xl mx-auto">
+            Sign in with Google and start analyzing your resume against real job descriptions.
+          </p>
+
+          <Link
+            href="/login"
+            className="bg-text-primary text-background hover:bg-white/90 px-8 py-4 rounded-lg font-medium text-lg transition-all inline-flex items-center gap-3 shadow-lg"
+          >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -170,8 +181,9 @@ export default function Home() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Sign In With Google
-          </button>
+
+            Continue with Google
+          </Link>
         </div>
       </section>
 
