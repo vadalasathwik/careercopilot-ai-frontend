@@ -1,7 +1,9 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL environment variable is not defined");
+    throw new Error(
+        "NEXT_PUBLIC_API_URL environment variable is not defined"
+    );
 }
 
 export async function syncUser(user: {
@@ -24,10 +26,14 @@ export async function syncUser(user: {
         }
     );
 
+    const data = await response.json();
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Authentication synchronization failed");
+        throw new Error(
+            data?.detail ||
+            "Failed to synchronize user"
+        );
     }
 
-    return response.json();
+    return data;
 }
