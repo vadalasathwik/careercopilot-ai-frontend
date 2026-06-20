@@ -6,6 +6,10 @@ import { useEffect, useState, useCallback } from "react";
 import { syncUser } from "@/lib/api";
 import ResumeUpload from "@/components/resume/ResumeUpload";
 import ResumeList from "@/components/resume/ResumeList";
+import JDForm from "@/components/analysis/JDForm";
+import AnalysisResult from "@/components/analysis/AnalysisResult";
+import { Resume } from "@/lib/resume-api";
+import { Analysis } from "@/lib/analysis-api";
 import Image from "next/image";
 
 export default function DashboardPage() {
@@ -16,6 +20,8 @@ export default function DashboardPage() {
     const [isSyncing, setIsSyncing] = useState<boolean>(true);
     const [syncError, setSyncError] = useState<string | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+    const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<Analysis | null>(null);
 
     const createOrSyncUser = useCallback(async () => {
         if (!session?.user?.email) return;
@@ -36,9 +42,10 @@ export default function DashboardPage() {
                 throw new Error("Malformed backend response: 'user.id' is missing or invalid.");
             }
             setDbUserId(result.user.id);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("User Sync Error:", error);
-            setSyncError(error.message || "Failed to synchronize user account details.");
+            const message = error instanceof Error ? error.message : "Failed to synchronize user account details.";
+            setSyncError(message);
         } finally {
             setIsSyncing(false);
         }
@@ -56,6 +63,11 @@ export default function DashboardPage() {
 
     const handleUploadSuccess = () => {
         setRefreshTrigger((prev) => prev + 1);
+    };
+
+    const handleSelectResume = (resume: Resume) => {
+        setSelectedResume(resume);
+        setAnalysisResult(null); // Clear previous results when selecting a new resume
     };
 
     // NextAuth loading
@@ -158,57 +170,39 @@ export default function DashboardPage() {
                                 <ResumeList
                                     userId={dbUserId}
                                     refreshTrigger={refreshTrigger}
+                                    selectedResumeId={selectedResume?.id}
+                                    onSelectResume={handleSelectResume}
                                 />
                             )}
                         </div>
 
-                        {/* Future Features Card */}
-                        <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-semibold">Future Capabilities</h3>
-                                <span className="px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-accent border border-accent/30 bg-accent/5 rounded-full uppercase">
-                                    Coming Soon
-                                </span>
+                        {/* ATS & Skill Gap Analysis Flow */}
+                        {dbUserId && (
+                            <div className="space-y-6">
+                                {!selectedResume ? (
+                                    <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 border-dashed">
+                                        <svg className="w-12 h-12 mx-auto mb-3 text-zinc-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                                        </svg>
+                                        <h3 className="text-base font-semibold text-zinc-300">ATS Optimization & Skill Gap Scan</h3>
+                                        <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+                                            Select an uploaded resume from the list above to paste a target Job Description and trigger Gemini AI analysis.
+                                        </p>
+                                    </div>
+                                ) : !analysisResult ? (
+                                    <JDForm
+                                        userId={dbUserId}
+                                        resumeId={selectedResume.id}
+                                        onAnalysisComplete={(result) => setAnalysisResult(result)}
+                                    />
+                                ) : (
+                                    <AnalysisResult
+                                        analysis={analysisResult}
+                                        onReset={() => setAnalysisResult(null)}
+                                    />
+                                )}
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl space-y-2">
-                                    <div className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg w-fit text-zinc-500">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <h4 className="text-sm font-medium text-zinc-300">JD Upload</h4>
-                                    <p className="text-xs text-zinc-500">
-                                        Upload or paste complete target job descriptions.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl space-y-2">
-                                    <div className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg w-fit text-zinc-500">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-                                        </svg>
-                                    </div>
-                                    <h4 className="text-sm font-medium text-zinc-300">ATS Analysis</h4>
-                                    <p className="text-xs text-zinc-500">
-                                        Analyze formatting and scan-friendliness.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 bg-zinc-900/30 border border-zinc-800 rounded-xl space-y-2">
-                                    <div className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg w-fit text-zinc-500">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                        </svg>
-                                    </div>
-                                    <h4 className="text-sm font-medium text-zinc-300">Skill Gap Analysis</h4>
-                                    <p className="text-xs text-zinc-500">
-                                        Get concrete recommendations of skills to learn.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Right Column (Profile Card) */}
@@ -259,4 +253,4 @@ export default function DashboardPage() {
             </section>
         </main>
     );
-}
+}

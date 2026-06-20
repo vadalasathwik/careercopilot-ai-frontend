@@ -6,9 +6,16 @@ import { getUserResumes, Resume } from "@/lib/resume-api";
 interface ResumeListProps {
     userId: number;
     refreshTrigger: number;
+    selectedResumeId?: number | null;
+    onSelectResume?: (resume: Resume) => void;
 }
 
-export default function ResumeList({ userId, refreshTrigger }: ResumeListProps) {
+export default function ResumeList({ 
+    userId, 
+    refreshTrigger, 
+    selectedResumeId, 
+    onSelectResume 
+}: ResumeListProps) {
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -23,8 +30,9 @@ export default function ResumeList({ userId, refreshTrigger }: ResumeListProps) 
                 (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
             setResumes(sortedData);
-        } catch (err: any) {
-            setError(err.message || "Failed to retrieve resumes. Please check your backend connection.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to retrieve resumes. Please check your backend connection.";
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -137,9 +145,25 @@ export default function ResumeList({ userId, refreshTrigger }: ResumeListProps) 
                             return (
                                 <div
                                     key={resume.id}
-                                    className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/80 hover:border-zinc-700/80 rounded-xl transition duration-200"
+                                    onClick={() => onSelectResume?.(resume)}
+                                    className={`flex items-center justify-between p-4 rounded-xl transition duration-200 border cursor-pointer ${
+                                        selectedResumeId === resume.id
+                                            ? "border-accent bg-accent/5 ring-1 ring-accent"
+                                            : "bg-zinc-900/30 border-zinc-800/80 hover:border-zinc-700/80"
+                                    }`}
                                 >
                                     <div className="flex items-center space-x-3 min-w-0 flex-1 mr-4">
+                                        {onSelectResume && (
+                                            <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors ${
+                                                selectedResumeId === resume.id
+                                                    ? "border-accent bg-accent"
+                                                    : "border-zinc-700 bg-transparent"
+                                            }`}>
+                                                {selectedResumeId === resume.id && (
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                                )}
+                                            </div>
+                                        )}
                                         <div className={`p-2 rounded-lg ${isPdf ? "bg-red-950/30 text-red-400 border border-red-900/30" : "bg-blue-950/30 text-blue-400 border border-blue-900/30"}`}>
                                             <svg
                                                 className="w-5 h-5"
@@ -169,6 +193,7 @@ export default function ResumeList({ userId, refreshTrigger }: ResumeListProps) 
                                         href={resume.file_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
                                         className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition duration-200 flex-shrink-0 flex items-center space-x-1"
                                     >
                                         <span>View</span>
