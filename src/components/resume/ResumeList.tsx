@@ -8,13 +8,15 @@ interface ResumeListProps {
     refreshTrigger: number;
     selectedResumeId?: number | null;
     onSelectResume?: (resume: Resume) => void;
+    onCountChange?: (count: number) => void;
 }
 
 export default function ResumeList({ 
     userId, 
     refreshTrigger, 
     selectedResumeId, 
-    onSelectResume 
+    onSelectResume,
+    onCountChange
 }: ResumeListProps) {
     const [resumes, setResumes] = useState<Resume[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +32,7 @@ export default function ResumeList({
                 (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
             setResumes(sortedData);
+            onCountChange?.(sortedData.length);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to retrieve resumes. Please check your backend connection.";
             setError(message);
@@ -60,13 +63,19 @@ export default function ResumeList({
     };
 
     return (
-        <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold">Uploaded Resumes</h3>
+        <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 h-full flex flex-col shadow-xl relative overflow-hidden">
+            {/* Background glow */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex justify-between items-center mb-6 relative">
+                <div>
+                    <h3 className="text-lg font-bold tracking-tight text-zinc-100">Uploaded Resumes</h3>
+                    <p className="text-zinc-500 text-xs mt-1">Select a resume to start analysis</p>
+                </div>
                 <button
                     onClick={fetchResumes}
                     disabled={isLoading}
-                    className="p-1.5 rounded-lg border border-zinc-800 hover:bg-zinc-900 transition text-zinc-400 hover:text-white disabled:opacity-50 cursor-pointer"
+                    className="p-2 rounded-xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-800 transition text-zinc-400 hover:text-white disabled:opacity-50 cursor-pointer outline-none focus:ring-1 focus:ring-zinc-700"
                     title="Refresh list"
                 >
                     <svg
@@ -87,15 +96,15 @@ export default function ResumeList({
             </div>
 
             {/* Content area */}
-            <div className="flex-1 flex flex-col justify-center">
+            <div className="flex-1 flex flex-col justify-center relative">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                        <span className="text-zinc-400 text-sm">Fetching resumes...</span>
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-zinc-500 text-xs font-medium">Fetching resumes...</span>
                     </div>
                 ) : error ? (
                     <div className="py-8 px-4 text-center space-y-4">
-                        <div className="inline-flex p-3 bg-red-950/20 border border-red-900/40 rounded-full text-red-400">
+                        <div className="inline-flex p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400">
                             <svg
                                 className="w-6 h-6"
                                 fill="none"
@@ -111,16 +120,16 @@ export default function ResumeList({
                                 />
                             </svg>
                         </div>
-                        <p className="text-sm text-zinc-400 max-w-sm mx-auto">{error}</p>
+                        <p className="text-xs text-zinc-400 max-w-sm mx-auto">{error}</p>
                         <button
                             onClick={fetchResumes}
-                            className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer"
+                            className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-semibold rounded-xl transition duration-200 cursor-pointer"
                         >
                             Retry
                         </button>
                     </div>
                 ) : resumes.length === 0 ? (
-                    <div className="text-center py-12 text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                    <div className="text-center py-12 text-zinc-500 border border-dashed border-zinc-800 rounded-xl bg-zinc-900/5">
                         <svg
                             className="w-10 h-10 mx-auto mb-3 text-zinc-600"
                             fill="none"
@@ -135,38 +144,54 @@ export default function ResumeList({
                                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                             />
                         </svg>
-                        <p className="text-sm">No resumes uploaded yet.</p>
-                        <p className="text-xs text-zinc-600 mt-1">Upload a resume to get started</p>
+                        <p className="text-xs font-bold text-zinc-400">No resumes uploaded yet.</p>
+                        <p className="text-[10px] text-zinc-600 mt-1">Upload a resume to get started</p>
                     </div>
                 ) : (
                     <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                         {resumes.map((resume) => {
                             const isPdf = resume.file_name.toLowerCase().endsWith(".pdf");
+                            const isSelected = selectedResumeId === resume.id;
                             return (
                                 <div
                                     key={resume.id}
                                     onClick={() => onSelectResume?.(resume)}
-                                    className={`flex items-center justify-between p-4 rounded-xl transition duration-200 border cursor-pointer ${
-                                        selectedResumeId === resume.id
-                                            ? "border-accent bg-accent/5 ring-1 ring-accent"
-                                            : "bg-zinc-900/30 border-zinc-800/80 hover:border-zinc-700/80"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            onSelectResume?.(resume);
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-selected={isSelected}
+                                    className={`flex items-center justify-between p-4 rounded-xl transition duration-200 border cursor-pointer outline-none focus:ring-1 focus:ring-indigo-500/50 ${
+                                        isSelected
+                                            ? "border-indigo-500 bg-indigo-500/5 shadow-[0_0_15px_-3px_rgba(79,70,229,0.15)]"
+                                            : "bg-zinc-900/30 border-zinc-800/80 hover:border-zinc-700/80 hover:bg-zinc-900/40"
                                     }`}
                                 >
-                                    <div className="flex items-center space-x-3 min-w-0 flex-1 mr-4">
+                                    <div className="flex items-center space-x-3.5 min-w-0 flex-1 mr-4">
                                         {onSelectResume && (
-                                            <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors ${
-                                                selectedResumeId === resume.id
-                                                    ? "border-accent bg-accent"
-                                                    : "border-zinc-700 bg-transparent"
-                                            }`}>
-                                                {selectedResumeId === resume.id && (
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                            <div className="flex-shrink-0">
+                                                {isSelected ? (
+                                                    <div className="w-5 h-5 rounded-full bg-indigo-500 border border-indigo-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-5 h-5 rounded-full border border-zinc-800 hover:border-zinc-700 bg-zinc-950 transition-colors" />
                                                 )}
                                             </div>
                                         )}
-                                        <div className={`p-2 rounded-lg ${isPdf ? "bg-red-950/30 text-red-400 border border-red-900/30" : "bg-blue-950/30 text-blue-400 border border-blue-900/30"}`}>
+                                        <div className={`p-2 rounded-xl flex-shrink-0 border ${
+                                            isPdf 
+                                                ? "bg-rose-500/10 text-rose-400 border-rose-500/20" 
+                                                : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                        }`}>
                                             <svg
-                                                className="w-5 h-5"
+                                                className="w-4 h-4"
                                                 fill="none"
                                                 stroke="currentColor"
                                                 viewBox="0 0 24 24"
@@ -181,10 +206,10 @@ export default function ResumeList({
                                             </svg>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h4 className="text-sm font-medium text-zinc-200 truncate" title={resume.file_name}>
+                                            <h4 className="text-xs font-bold text-zinc-200 truncate" title={resume.file_name}>
                                                 {resume.file_name}
                                             </h4>
-                                            <p className="text-xs text-zinc-500 mt-0.5">
+                                            <p className="text-[10px] text-zinc-500 mt-1 font-medium">
                                                 {formatDate(resume.created_at)}
                                             </p>
                                         </div>
@@ -194,11 +219,11 @@ export default function ResumeList({
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
-                                        className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition duration-200 flex-shrink-0 flex items-center space-x-1"
+                                        className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/30 text-[10px] font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition duration-200 flex-shrink-0 flex items-center space-x-1 outline-none focus:ring-1 focus:ring-zinc-700"
                                     >
                                         <span>View</span>
                                         <svg
-                                            className="w-3.5 h-3.5"
+                                            className="w-3 h-3"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"

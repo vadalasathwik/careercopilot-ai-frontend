@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { syncUser } from "@/lib/api";
@@ -8,9 +8,10 @@ import ResumeUpload from "@/components/resume/ResumeUpload";
 import ResumeList from "@/components/resume/ResumeList";
 import JDForm from "@/components/analysis/JDForm";
 import AnalysisResult from "@/components/analysis/AnalysisResult";
+import DashboardNavbar from "@/components/DashboardNavbar";
+import ProfileCard from "@/components/ProfileCard";
 import { Resume } from "@/lib/resume-api";
 import { Analysis } from "@/lib/analysis-api";
-import Image from "next/image";
 
 export default function DashboardPage() {
     const { data: session, status } = useSession();
@@ -22,6 +23,7 @@ export default function DashboardPage() {
     const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
     const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
     const [analysisResult, setAnalysisResult] = useState<Analysis | null>(null);
+    const [resumeCount, setResumeCount] = useState<number>(0);
 
     const createOrSyncUser = useCallback(async () => {
         if (!session?.user?.email) return;
@@ -75,8 +77,8 @@ export default function DashboardPage() {
         return (
             <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
                 <div className="flex flex-col items-center space-y-4">
-                    <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-                    <p className="text-zinc-400 text-sm">Loading Session...</p>
+                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-zinc-500 text-xs font-semibold">Loading Session...</p>
                 </div>
             </main>
         );
@@ -87,8 +89,8 @@ export default function DashboardPage() {
         return (
             <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
                 <div className="flex flex-col items-center space-y-4">
-                    <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-                    <p className="text-zinc-400 text-sm">Syncing with backend database...</p>
+                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-zinc-500 text-xs font-semibold">Syncing with backend database...</p>
                 </div>
             </main>
         );
@@ -99,18 +101,18 @@ export default function DashboardPage() {
         return (
             <main className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white">
                 <div className="max-w-md w-full mx-4 p-6 bg-[#111111] border border-zinc-800 rounded-2xl text-center space-y-6">
-                    <div className="inline-flex p-3 bg-red-950/20 border border-red-900/40 rounded-full text-red-400">
+                    <div className="inline-flex p-3 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-400">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Database Sync Error</h3>
-                        <p className="text-sm text-zinc-400">{syncError}</p>
+                        <h3 className="text-base font-bold text-zinc-200">Database Sync Error</h3>
+                        <p className="text-xs text-zinc-500">{syncError}</p>
                     </div>
                     <button
                         onClick={createOrSyncUser}
-                        className="w-full py-2.5 rounded-lg bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition duration-200 cursor-pointer"
+                        className="w-full py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-extrabold text-xs transition duration-200 cursor-pointer outline-none"
                     >
                         Retry Connection
                     </button>
@@ -119,43 +121,88 @@ export default function DashboardPage() {
         );
     }
 
-    return (
-        <main className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
-            {/* Navbar */}
-            <header className="border-b border-zinc-800 bg-[#0A0A0A]">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <h1 className="font-semibold text-lg tracking-tight">
-                        CareerCopilot AI
-                    </h1>
+    const renderKpiRing = (score: number | null, label: string, description: string) => {
+        const isNull = score === null;
+        const value = score !== null ? score : 0;
+        const radius = 30;
+        const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference - (value / 100) * circumference;
 
-                    <button
-                        onClick={() => signOut({ callbackUrl: "/" })}
-                        className="px-4 py-2 rounded-lg border border-zinc-800 text-sm font-medium text-zinc-300 hover:bg-zinc-900 hover:text-white transition cursor-pointer"
-                    >
-                        Logout
-                    </button>
+        return (
+            <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 flex items-center justify-between shadow-xl relative overflow-hidden group hover:border-zinc-700/80 transition-all duration-200 min-h-[110px]">
+                <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+                <div className="space-y-1.5 relative z-10">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</span>
+                    <p className="text-3xl font-black text-white tracking-tight">{!isNull ? `${value}%` : "—"}</p>
+                    <span className="text-[10px] text-zinc-650 font-medium block">{description}</span>
                 </div>
-            </header>
+
+                {!isNull ? (
+                    <div className="relative w-16 h-16 flex-shrink-0 z-10">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
+                            <circle cx="40" cy="40" r={radius} stroke="#18181B" strokeWidth="5" fill="transparent" />
+                            <circle
+                                cx="40"
+                                cy="40"
+                                r={radius}
+                                stroke={value >= 80 ? "#10B981" : value >= 65 ? "#F59E0B" : "#F43F5E"}
+                                strokeWidth="5"
+                                fill="transparent"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out"
+                            />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="h-12 w-12 rounded-xl bg-zinc-900/50 border border-zinc-800/80 flex items-center justify-center text-zinc-700 z-10">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <main className="min-h-screen bg-[#0A0A0A] text-white flex flex-col selection:bg-indigo-500 selection:text-white">
+            {/* Navbar */}
+            <DashboardNavbar
+                userName={session?.user?.name}
+                userEmail={session?.user?.email}
+                userImage={session?.user?.image}
+            />
 
             {/* Content */}
-            <section className="max-w-7xl mx-auto px-6 py-10 flex-1 w-full space-y-8">
-                {/* Welcome Card */}
-                <div className="relative overflow-hidden bg-[#111111] border border-zinc-800 rounded-2xl p-6 md:p-8">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="relative z-10 space-y-2">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-accent">Dashboard</span>
-                        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-                            Welcome back, {session?.user?.name || "User"}
-                        </h2>
-                        <p className="text-zinc-400 text-sm md:text-base max-w-2xl">
-                            Upload your resume, add target job descriptions, and use Gemini 2.5 Flash to automatically discover skill gaps and optimize your match rate.
-                        </p>
+            <section className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-6">
+
+
+                {/* Metrics KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {renderKpiRing(analysisResult?.ats_score ?? null, "ATS Score", "Automated compatibility alignment")}
+                    {renderKpiRing(analysisResult?.match_score ?? null, "JD Match Score", "Semantic overlap with requirements")}
+
+                    {/* Resume Count Card */}
+                    <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6 flex items-center justify-between shadow-xl relative overflow-hidden group hover:border-zinc-700/80 transition-all duration-200 min-h-[110px]">
+                        <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+                        <div className="space-y-1.5 relative z-10">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Resumes Uploaded</span>
+                            <p className="text-3xl font-black text-white tracking-tight">{resumeCount}</p>
+                            <span className="text-[10px] text-zinc-650 font-medium block">Total documents in library</span>
+                        </div>
+                        <div className="h-12 w-12 rounded-xl bg-zinc-900/50 border border-zinc-800/80 flex items-center justify-center text-zinc-550 z-10">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left & Middle Columns (Resume Flow) */}
-                    <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Workspace Columns (Left 3/4) */}
+                    <div className="lg:col-span-3 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Resume Upload Card */}
                             {dbUserId && (
@@ -172,6 +219,7 @@ export default function DashboardPage() {
                                     refreshTrigger={refreshTrigger}
                                     selectedResumeId={selectedResume?.id}
                                     onSelectResume={handleSelectResume}
+                                    onCountChange={(count) => setResumeCount(count)}
                                 />
                             )}
                         </div>
@@ -180,13 +228,14 @@ export default function DashboardPage() {
                         {dbUserId && (
                             <div className="space-y-6">
                                 {!selectedResume ? (
-                                    <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-8 text-center text-zinc-500 border-dashed">
-                                        <svg className="w-12 h-12 mx-auto mb-3 text-zinc-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-10 text-center text-zinc-500 border-dashed relative overflow-hidden shadow-md">
+                                        <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                                        <svg className="w-10 h-10 mx-auto mb-3 text-zinc-600 animate-pulse-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                                         </svg>
-                                        <h3 className="text-base font-semibold text-zinc-300">ATS Optimization & Skill Gap Scan</h3>
-                                        <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
-                                            Select an uploaded resume from the list above to paste a target Job Description and trigger Gemini AI analysis.
+                                        <h3 className="text-sm font-bold text-zinc-300">ATS Optimization & Skill Gap Scan</h3>
+                                        <p className="text-[10px] text-zinc-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                                            Select an uploaded resume from the library above to paste a target Job Description and trigger Gemini AI analysis.
                                         </p>
                                     </div>
                                 ) : !analysisResult ? (
@@ -205,49 +254,15 @@ export default function DashboardPage() {
                         )}
                     </div>
 
-                    {/* Right Column (Profile Card) */}
-                    <div className="space-y-6">
-                        <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-6">
-                            <h3 className="font-semibold mb-4 text-zinc-200">Profile Details</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-3">
-                                    {session?.user?.image ? (
-                                        <Image
-                                            src={session.user.image}
-                                            alt="Profile"
-                                            width={40}
-                                            height={40}
-                                            className="w-10 h-10 rounded-full border border-zinc-800"
-                                        />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-semibold uppercase text-sm">
-                                            {session?.user?.name ? session.user.name.substring(0, 2) : "CC"}
-                                        </div>
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-zinc-300 truncate">
-                                            {session?.user?.name}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 truncate">
-                                            {session?.user?.email}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-zinc-800 pt-4 space-y-2">
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-zinc-500">Database ID:</span>
-                                        <span className="text-zinc-400 font-mono">{dbUserId}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-zinc-500">Status:</span>
-                                        <span className="text-emerald-400 font-semibold uppercase tracking-wider text-[10px] bg-emerald-950/20 border border-emerald-900/30 px-1.5 py-0.5 rounded">
-                                            Synced
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Right Column Profile Card (1/4) */}
+                    <div className="lg:col-span-1">
+                        <ProfileCard
+                            userName={session?.user?.name}
+                            userEmail={session?.user?.email}
+                            userImage={session?.user?.image}
+                            dbUserId={dbUserId}
+                            isSyncing={isSyncing}
+                        />
                     </div>
                 </div>
             </section>
