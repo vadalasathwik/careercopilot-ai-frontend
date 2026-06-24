@@ -1,62 +1,78 @@
-# CareerCopilot AI Frontend 🚀
+# CareerCopilot AI - Professional Resume & ATS Optimizer 🚀
 
-CareerCopilot AI is a premium, modern AI-powered workspace designed to help job seekers optimize their resumes for specific target roles. By leveraging **Gemini 2.5 Flash**, the system cross-references uploaded resumes against target job descriptions, calculates ATS (Applicant Tracking System) compatibility scores, highlights key skill gaps, and delivers actionable, recruiter-style optimization advice.
+CareerCopilot AI is a full-stack, AI-powered workspace designed to help job seekers optimize their resumes for target job descriptions. Using **Google Gemini 2.5 Flash**, the system automatically scans uploaded resumes against target job descriptions, calculates ATS (Applicant Tracking System) formatting compliance, determines semantic JD matching rates, highlights critical missing skills, and delivers actionable recruiter-style recommendations.
 
-The UI is inspired by modern SaaS applications like Linear, Stripe, Vercel, and Notion—featuring a minimal dark layout, clean progress gauges, and responsive dashboards.
+This repository document serves as the project-wide overview for the entire CareerCopilot AI ecosystem, including the **Next.js Frontend**, **FastAPI Backend**, **PostgreSQL Database**, and **Supabase Storage** integrations.
 
 ---
 
 ## 📋 Table of Contents
-1. [Key Features](#-key-features)
-2. [Technical Flowcharts](#-technical-flowcharts)
-3. [User Guide / Step-by-Step Manual](#-user-guide--step-by-step-manual)
-4. [Technology Stack](#-technology-stack)
-5. [Getting Started (Local Development)](#-getting-started-local-development)
-6. [Environment Configurations](#-environment-configurations)
-7. [Production Building & Deployment](#-production-building--deployment)
+1. [System Architecture](#%EF%B8%8F-system-architecture)
+2. [Data Flow & Integration Flowcharts](#-data-flow--integration-flowcharts)
+3. [Repository Structure](#-repository-structure)
+4. [Backend API Service Setup](#-backend-api-service-setup)
+5. [Frontend App Service Setup](#-frontend-app-service-setup)
+6. [User Manual / Step-by-Step Guide](#-user-guide--step-by-step-manual)
+7. [API Contract Overview](#-api-contract-overview)
 
 ---
 
-## ✨ Key Features
+## ⚙️ System Architecture
 
-* **Vercel & Stripe-Inspired Dashboard**: A sleek, high-contrast dark interface featuring glassmorphic cards, transition animations, and visual hover feedback.
-* **Smart Navigation Bar**: Integrates a disabled quick search input, instant logo home links, and an interactive user avatar dropdown menu (with profile details, settings previews, and smooth keyboard-accessible logout interactions).
-* **Metrics & KPI Row**: Highlights your current ATS compliance score, semantic JD Match score, and total uploaded resume library count at a single glance.
-* **Resume Library & Selection**: Supports PDF and DOCX uploads up to 5MB. Select any document from your historical upload library to load it into the optimizer workspace.
-* **AI Optimizer Workspace**: Input your target job description with real-time character counters and live validation (requires a 50-character minimum for accuracy).
-* **Comprehensive Skill Gap Scanner**:
-  * **Score Gauges**: Animated circular SVG progress gauges showing ATS compliance and JD semantic match percentage.
-  * **Skill Gaps Tagging**: Identified missing keywords and skills presented as wrapped, custom-pill rose badges.
-  * **Recruiter Recommendations**: Numbered feedback cards offering actionable tips on resume editing, phrasing, and project highlighting.
-* **Profile Management Page**: Clean profile summary view displaying synchronization logs, database IDs, and connection status badges.
+The application is split into decoupled services:
+
+```text
+                     +---------------------------------------+
+                     |         Browser / User Client         |
+                     +---------------------------------------+
+                                   |           |
+                     OAuth & Pages |           | HTTP API
+                                   v           v
+  +----------------------------------+       +----------------------------------+
+  |        Next.js Frontend          |       |         FastAPI Backend          |
+  |  - React 19 / NextAuth.js        |       |  - SQLAlchemy ORM / Alembic      |
+  |  - Tailwind CSS v4 / PostCSS     |       |  - Uvicorn / CORS Middleware     |
+  +----------------------------------+       +----------------------------------+
+                                                       |           |           |
+                                    File Uploads / URLs|           | SQL       | Gemini AI
+                                                       v           v           v
+                                                [Supabase]      [Neon DB]   [Google AI]
+                                                S3 Bucket       PostgreSQL  Gemini 2.5
+```
+
+* **Frontend**: Next.js App Router (React 19) styled with Tailwind CSS v4, utilizing NextAuth.js for Google OAuth session security.
+* **Backend**: FastAPI web framework (Python) running on Uvicorn, utilizing SQLAlchemy for PostgreSQL database access and Alembic for schema migrations.
+* **AI Engine**: Google Gemini 2.5 Flash API executing semantic parsing, gap analysis, and recommendation generation.
+* **Database**: Serverless PostgreSQL database hosted on Neon, storing user credentials, resume metadata, and historical analysis reports.
+* **Storage**: Supabase Storage buckets storing raw PDF and DOCX resume files.
 
 ---
 
-## 📊 Technical Flowcharts
+## 📊 Data Flow & Integration Flowcharts
 
-### 1. User Authentication & Database Synchronization Flow
-This diagram details how the frontend uses NextAuth to authenticate with Google OAuth and subsequently registers or connects the user session with the PostgreSQL database API on the backend.
+### 1. Account Synchronization & Authentication Flow
+This diagram details the sequence when a user logs in via Google OAuth and the frontend registers their profile with the PostgreSQL database.
 
 ```mermaid
 sequenceDiagram
     participant User as User (Browser)
     participant Auth as NextAuth.js (Frontend)
     participant API as FastAPI Backend (Port 8000)
-    participant DB as PostgreSQL Database
+    participant DB as Neon PostgreSQL DB
     
     User->>Auth: Click Login (Google OAuth)
     Auth->>User: Redirects to Google Sign-In
     User->>Auth: Completes Authentication
     Auth->>User: Establishes Session Cookie
     User->>API: syncUser (POST /auth/google)
-    Note over API: Verifies email & syncs user details
-    API->>DB: Upsert user record
+    Note over API: Checks if user exists; creates if new
+    API->>DB: Upsert user details
     DB->>API: Return user_id
-    API->>User: Sync completed (returns user object & ID)
+    API->>User: Sync completed (returns DB user object & ID)
 ```
 
-### 2. Resume Upload & AI Analysis Session Flow
-This diagram describes the step-by-step process of choosing a resume, pasting a job description, validating input criteria, running the Gemini AI analysis, and rendering the final report.
+### 2. Resume Upload & AI Analysis Flow
+This flowchart describes the end-to-end user workspace flow from uploading files to generating matching recommendations.
 
 ```mermaid
 graph TD
@@ -81,121 +97,142 @@ graph TD
 
 ---
 
-## 📖 User Guide / Step-by-Step Manual
+## 📂 Repository Structure
 
-### Step 1: Authentication
-1. Navigate to the website homepage.
-2. Click **Get Started** or **Login** on the navigation bar.
-3. Select your Google account on the secure OAuth login screen.
-4. You will be redirected to the secure **Dashboard** workspace.
+The project code is divided into two separate project directories:
 
-### Step 2: Upload Your Resumes
-1. In the **Upload Resume** card on the dashboard, drag your PDF or DOCX resume directly into the dotted upload box (or click **Browse File**).
-2. Once selected, verify the file name and size, then click **Upload File**.
-3. Once completed, your file will appear at the top of the **Uploaded Resumes** library list.
+### 1. Backend Service (`/careercopilot-ai-backend`)
+* `app/main.py`: Main FastAPI entrypoint with CORS configuration.
+* `app/routers/`: Router routes for auth, resume storage, and analysis reports.
+* `app/models/`: SQLAlchemy DB models (`User`, `Resume`, `Analysis`).
+* `app/services/`: Core logic helpers including `gemini_service` and `supabase_service`.
+* `alembic/`: Alembic database migration scripts.
+* `requirements.txt`: Python package dependencies.
+* `venv/`: Local Python virtual environment.
 
-### Step 3: Select a Resume & Open the Optimizer
-1. Look at the **Uploaded Resumes** panel.
-2. Click on the resume you wish to analyze.
-3. The selected resume will light up with an **indigo border accent**, a checkmark indicator, and a soft glow, indicating it is active. The **ATS Optimizer Workspace** form will dynamically appear below it.
-
-### Step 4: Run the Cross-Reference Analysis
-1. Copy the target job description (e.g., from LinkedIn or Indeed).
-2. Paste the text into the **ATS Optimizer Workspace** text area.
-3. Keep track of the character counter at the bottom-right. The scan requires a minimum of **50 characters** of job description text.
-4. Click **Run ATS Optimizer Scan**.
-5. The button will change to a loading spinner showing real-time feedback (e.g., *"Gemini is running cross-reference scan..."*).
-
-### Step 5: Review the Insights
-1. Once Gemini completes the run, the insights will populate on your screen:
-   * **KPI Indicators**: Check the circular rings at the top for your overall scores.
-   * **Skill Gaps**: Check the red pills for critical keywords or tools mentioned in the job description that were not detected in your resume.
-   * **Tips**: Read the numbered recruiter-style tips to rewrite details of your professional experience to match semantic expectations.
-2. Click **Scan Another JD** to reset the form and optimize your resume for another job.
+### 2. Frontend App (`/careercopilot-ai-frontend`)
+* `src/app/dashboard/page.tsx`: Core SaaS workspace page.
+* `src/app/profile/page.tsx`: Synchronized user profile account page.
+* `src/components/`: Reusable components (e.g., `DashboardNavbar`, `ProfileCard`).
+* `src/components/resume/`: Child upload components and resume list selectors.
+* `src/components/analysis/`: Target job description forms and formatted results displays.
+* `src/lib/`: API client handlers for authentication, resume, and analysis communication.
+* `package.json`: NPM scripts and dependencies (Next.js v16+, React v19, Tailwind v4).
 
 ---
 
-## 🛠️ Technology Stack
+## 🐍 Backend API Service Setup
 
-* **Framework**: [Next.js](https://nextjs.org/) (App Router, v16+)
-* **UI Engine**: [React](https://react.dev/) (v19)
-* **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) (using PostCSS integration)
-* **Authentication**: [NextAuth.js](https://next-auth.js.org/)
-* **Type Safety**: [TypeScript](https://www.typescriptlang.org/)
+Make sure you have Python 3.10+ installed.
+
+1. **Navigate to the backend directory**:
+   ```bash
+   cd careercopilot-ai-backend
+   ```
+
+2. **Set up the virtual environment**:
+   * Windows:
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\activate
+     ```
+   * Mac/Linux:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables**:
+   Create a `.env` file in the root of `/careercopilot-ai-backend`:
+   ```ini
+   DATABASE_URL=postgresql://your-neon-postgres-connection-string
+   SUPABASE_URL=https://your-supabase-project.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-key
+   GEMINI_API_KEY=your-google-gemini-api-key
+   ```
+
+5. **Run database migrations**:
+   ```bash
+   alembic upgrade head
+   ```
+
+6. **Start the API server**:
+   ```bash
+   uvicorn app.main:app --port 8000 --reload
+   ```
+   The backend API will run on [http://localhost:8000](http://localhost:8000).
 
 ---
 
-## 🚀 Getting Started (Local Development)
+## 💻 Frontend App Service Setup
 
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed (v18+ recommended) and the [CareerCopilot AI Backend](https://github.com/vadalasathwik/careercopilot-ai-backend) running on port `8000`.
+Make sure you have Node.js 18+ installed.
 
-### Setup Instructions
-
-1. **Clone the repository and enter the directory**:
+1. **Navigate to the frontend directory**:
    ```bash
    cd careercopilot-ai-frontend
    ```
 
-2. **Install project dependencies**:
+2. **Install node dependencies**:
    ```bash
    npm install
    ```
 
-3. **Configure local environment variables**:
-   Create a file named `.env.local` in the root of the directory (see the [Environment Configurations](#-environment-configurations) section below for variables).
+3. **Configure environment variables**:
+   Create a `.env.local` file in the root of `/careercopilot-ai-frontend`:
+   ```ini
+   # Google OAuth Credentials
+   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-4. **Launch the development server**:
+   # NextAuth Security
+   NEXTAUTH_SECRET=your-random-32-byte-hexadecimal-string
+   NEXTAUTH_URL=http://localhost:3000
+
+   # Public API Endpoint
+   NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+   ```
+
+4. **Start the development server**:
    ```bash
    npm run dev
    ```
-
-5. **Access the application**:
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   The frontend application will be active at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## ⚙️ Environment Configurations
+## 📖 User Guide / Step-by-Step Manual
 
-Create a `.env.local` file in the root folder of the project with the following configuration keys:
-
-```ini
-# Google OAuth Configuration (obtained from Google Cloud Console)
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# NextAuth Configuration
-NEXTAUTH_SECRET=your-random-32-byte-hexadecimal-secret-string
-NEXTAUTH_URL=http://localhost:3000
-
-# Backend API Endpoint URL
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
-```
+1. **Authentication**: Access `http://localhost:3000`, click **Login**, and complete Google OAuth sign-in. This automatically logs your account details and synchronizes your record in PostgreSQL.
+2. **Upload Resumes**: Drag and drop a PDF or DOCX resume into the upload panel. Files are pushed to a secure Supabase storage bucket, and metadata is updated in the database.
+3. **Select Active Document**: Click on your uploaded resume in the library list. It will display a glowing active outline, showing that it is selected for optimization.
+4. **Define Target Job Description**: Paste the text of the role you are applying to. Keep typing until you pass the 50-character minimum verification.
+5. **Run Optimizer Analysis**: Click **Run ATS Optimizer Scan**. Uvicorn delegates the processing to the Gemini API, which extracts skills and rates structural alignment.
+6. **Review Insights**:
+   * Circular rings display your score percentages.
+   * Red badge pills display missing keywords.
+   * Bordered text cards provide recruiter-style resume optimization tips.
 
 ---
 
-## 📦 Production Building & Deployment
+## 🔗 API Contract Overview
 
-To verify TypeScript and compile a production-ready Next.js bundle:
+The FastAPI backend exposes the following endpoints:
 
-```bash
-npm run build
-```
+### Auth Router (`/auth`)
+* `POST /auth/google`: Receives Google profile credentials, synchronizes the user in the PostgreSQL DB, and returns the DB user object.
 
-The output build outputs static routes (`○`) and dynamic server-rendered endpoints (`ƒ`) compiled with Next.js Turbopack:
+### Resume Router (`/resume`)
+* `POST /resume/upload`: Uploads resume files (PDF/DOCX) to Supabase Storage and records details in the database.
+* `GET /resume/{user_id}`: Returns all resumes uploaded by the specified user.
 
-```text
-Route (app)
-┌ ○ /
-├ ○ /_not-found
-├ ƒ /api/auth/[...nextauth]
-├ ○ /dashboard
-├ ○ /login
-└ ○ /profile
-```
-
-### Deploying to Vercel
-This project is configured for one-click deployments to Vercel:
-1. Connect your GitHub repository to [Vercel](https://vercel.com).
-2. Configure the same Environment Variables under Project Settings.
-3. Deploy! Vercel will automatically build the static page dependencies.
+### Analysis Router (`/analysis`)
+* `POST /analysis/create`: Initializes a new analysis session for a specific user and resume ID.
+* `POST /analysis/run/{analysis_id}`: Executes the Gemini AI scanner, updating the analysis record with scores, missing skills, and recommendations.
+* `GET /analysis/{analysis_id}`: Retrieves the detailed analysis record.
+* `GET /analysis/user/{user_id}`: Returns the complete historical log of analyses generated by the user.
