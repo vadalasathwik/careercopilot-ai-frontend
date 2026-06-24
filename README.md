@@ -65,7 +65,7 @@ sequenceDiagram
     User->>Auth: Completes Authentication
     Auth->>User: Establishes Session Cookie
     User->>API: syncUser (POST /auth/google)
-    Note over API: Checks if user exists; creates if new
+    Note over API: Checks if user exists, creates if new
     API->>DB: Upsert user details
     DB->>API: Return user_id
     API->>User: Sync completed (returns DB user object & ID)
@@ -84,9 +84,9 @@ graph TD
     Validate -- No --> Error[Show Validation Warning]
     Validate -- Yes --> Submit[Run ATS Optimizer Scan]
     
-    Submit --> CreateSession[1. Create Analysis Session (POST /analysis/create)]
-    CreateSession --> RunGemini[2. Execute Gemini Analysis (POST /analysis/run/analysis_id)]
-    RunGemini --> FetchReport[3. Retrieve Report Details (GET /analysis/analysis_id)]
+    Submit --> CreateSession["1. Create Analysis Session (POST /analysis/create)"]
+    CreateSession --> RunGemini["2. Execute Gemini Analysis (POST /analysis/run/analysis_id)"]
+    RunGemini --> FetchReport["3. Retrieve Report Details (GET /analysis/analysis_id)"]
     
     FetchReport --> Display[Render Optimization Insights]
     
